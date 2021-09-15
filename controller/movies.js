@@ -2,11 +2,19 @@ const {Movie, validate} = require('../models/movie');
 const {Genre} = require('../models/genre');
 
 exports.getallmovies = async (req, res) => {
-    const movies = await Movie.find().sort('name');
-    res.send(movies);
+  var movies = await Movie.find().sort('name');
+  var updatedmovie = [];
+  for(movie of movies){
+      const genreid = movie.genre._id
+      const genre = await Genre.findById(genreid);
+      movie.genre.name = genre.name;
+      await Movie.findByIdAndUpdate(movie._id,movie, { new: true });
+      updatedmovie.push(movie);
+  }
+res.send(updatedmovie);
   }
 
-exports.createmovies = async (req, res) => {
+  exports.createmovies = async (req, res) => {
     const { error } = validate(req.body); 
     if (error) return res.status(400).send(error.details[0].message);
   
@@ -59,42 +67,13 @@ exports.deletemovies = async (req, res) => {
   }
 
 exports.getonemovie = async (req, res) => {
-    const movie = await Movie.findById(req.params.id);
+  const movie  = await Movie.findById(req.params.id);
+  if(!movie) return res.status(404).send('The movie with the given ID was not found.');
+  const genreid = movie.genre._id
+  const genreobj = await Genre.findById(genreid);
+  movie.genre.name = genreobj.name
   
-    if (!movie) return res.status(404).send('The movie with the given ID was not found.');
-  
-    res.send(movie);
-}
-
-exports.gettingmovie = async (req, res) => {
-const movie  = await Movie.findById(req.params.id);
-if(!movie) return res.status(404).send('The movie with the given ID was not found.');
-const genreid = movie.genre._id
-console.log("this is genre id" + genreid + "and here it ends");
-const genreobj = await Genre.findById(genreid);
-console.log("this is genre object " + genreobj + " here it ends")
-movie.genre.name = genreobj.name
-
-await Movie.findByIdAndUpdate(req.params.id,
-  movie, { new: true });
-res.send(movie);
-}
-
-exports.gettingallmovies = async (req, res) =>{
-  var movies = await Movie.find().sort('name');
-  // var newmovies = [];
-  for(movie of movies){
-      const movieid = movie._id;
-      const genreid = movie.genre._id
-
-      const genre = await Genre.findById(genreid);
-
-      movie.genre.name = genre.name;
-
-      await Movie.findByIdAndUpdate(movie._id,movie, { new: true });
-  }
-
-  movies = await Movie.find().sort('name');
-
-  res.send(movies);
+  await Movie.findByIdAndUpdate(req.params.id,
+    movie, { new: true });
+  res.send(movie);
 }
